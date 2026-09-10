@@ -245,6 +245,12 @@ fun CameraScreen(
             )
 
             // 5. 中间可折叠专业调节面板
+            // 【教学点：Compose 原生覆层架构 (AnimatedVisibility In-Canvas Overlay)】：
+            // 此处采用直接在主页面 Box 布局树内挂载的 AnimatedVisibility。
+            // 优点：
+            // 1. 无系统 Window 阻断，不产生系统级 Dialog 的额外 DecorView 开销。
+            // 2. 宽度可完全由父级 Modifier.padding(horizontal = 8.dp) 决定，在竖屏下可最大化利用屏幕取景宽度。
+            // 3. 动画能够使用细腻的物理过渡动画（slideInVertically + fadeIn 弹性入场），体验如同相机取景器内嵌 OSD。
             AnimatedVisibility(
                 visible = uiState.showManualControls,
                 enter = slideInVertically(initialOffsetY = { -it / 2 }) + fadeIn(),
@@ -298,6 +304,14 @@ fun CameraScreen(
         )
 
         // 硬件能力教学弹窗
+        // 【教学点：Android 系统级模态弹窗 (System Window Dialog)】：
+        // 与上方“专业参数调节面板”采用的 Canvas 内嵌 In-Layout 覆层不同，
+        // “硬件能力探测”与“照片样本预览”采用标准的 [androidx.compose.ui.window.Dialog]。
+        // 【特性差异剖析】：
+        // 1. 窗口独立性：Dialog 会由 WindowManager 创建独立的顶层 Sub-Window，天然具有强制模态拦截能力（背景压暗、外部不可点透）。
+        // 2. 宽度与动画差异：受 Android 平台默认平台策略 (usePlatformDefaultWidth) 与 Window 动画规范影响，
+        //    系统弹窗两侧会预留标准的系统对话框安全边距，并伴随系统级的 Pop 弹出过渡。
+        //    两者作为对比，直观展示了“轻量级 In-Layout OSD 覆层”与“重量级独立系统模态窗”在不同业务场景下的典型选型。
         if (uiState.showSpecsDialog) {
             HardwareSpecsDialog(
                 specs = uiState.hardwareSpecs,
