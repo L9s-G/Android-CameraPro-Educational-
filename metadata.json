@@ -1,0 +1,6 @@
+{
+  "name": "Camera Pro",
+  "description": "A high-performance Android 8+ camera application designed for teaching and research, featuring CameraX & Camera2 pipeline optimization, manual controls, real-time metrics, and comprehensive architecture documentation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
