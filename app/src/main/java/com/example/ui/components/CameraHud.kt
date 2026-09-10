@@ -36,17 +36,21 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.camera.model.CameraRealtimeMetrics
 import com.example.camera.model.CameraUiState
 
 /**
  * 顶部专业抬头显示器 (Camera HUD - Heads Up Display)
  *
- * 【教学点】：向开发者直观呈现底层图像管道的吞吐状态，
- * 包括实际渲染 FPS、当前 Y 平面平均照度 (Luma) 以及曝光补偿 EV。
+ * 【教学架构精髓：高频遥测状态局部重组隔离】：
+ * [metrics] 作为独立的 [CameraRealtimeMetrics] 传入。
+ * 当 3~4Hz 测光或帧率更新时，重组范围严格被局限在 CameraHud 内部的遥测 Surface，
+ * 完全不波及宿主 CameraScreen、底部操作栏、手势对焦层和取景器包装层。
  */
 @Composable
 fun CameraHud(
     uiState: CameraUiState,
+    metrics: CameraRealtimeMetrics,
     onFlashToggle: () -> Unit,
     onTorchToggle: () -> Unit,
     onOpenSpecs: () -> Unit,
@@ -79,12 +83,12 @@ fun CameraHud(
                             .size(8.dp)
                             .clip(CircleShape)
                             .background(
-                                if (uiState.realtimeFps >= 24) Color(0xFF00E676) else Color(0xFFFFAB00)
+                                if (metrics.fps >= 24) Color(0xFF00E676) else Color(0xFFFFAB00)
                             )
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "${uiState.realtimeFps} FPS",
+                        text = "${metrics.fps} FPS",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -92,9 +96,9 @@ fun CameraHud(
                     )
                 }
 
-                // Y 通道亮度采样
+                // Y 通道亮度采样 (隔离刷新)
                 Text(
-                    text = "Luma: ${uiState.realtimeLuma}",
+                    text = "Luma: ${metrics.luma}",
                     color = Color(0xFFE0E0E0),
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace

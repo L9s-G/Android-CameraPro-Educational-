@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.camera.engine.CameraHardwareInspector
+import com.example.camera.model.CameraRealtimeMetrics
 import com.example.camera.model.CameraUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /**
  * 相机业务与状态管理 ViewModel (CameraViewModel)
@@ -23,11 +25,22 @@ import kotlinx.coroutines.launch
  * 【教学核心知识点：MVVM 与响应式状态分发】
  * 1. 采用 StateFlow 暴露不可变的 [CameraUiState]，保证状态从单一数据源单向流向 Jetpack Compose UI。
  * 2. 避免将 Context、View 或 CameraControl 强引用持久化在 ViewModel 中，防止 Activity 重建导致内存泄漏。
+ * 3. 架构解耦：将 30Hz 高频遥测从 CameraUiState 剥离为独立的 [CameraRealtimeMetrics] 流，
+ *    彻底杜绝全屏重组，保护 UI 线程吞吐。
  */
 class CameraViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
+
+    // 独立的高频遥测数据流 (仅 HUD 局部订阅)
+    private val _realtimeMetrics = MutableStateFlow(CameraRealtimeMetrics())
+    val realtimeMetrics: StateFlow<CameraRealtimeMetrics> = _realtimeMetrics.asStateFlow()
+
+    // 遥测生产端节流与死区降噪变量 (Signal Conditioning & Throttling)
+    private var lastMetricsEmitTimeMs = 0L
+    private var lastEmittedLuma = -1
+    private var lastEmittedFps = -1
 
     init {
         loadHardwareCharacteristics()
@@ -186,15 +199,32 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
     /**
      * 实时接收分析器汇报的 FPS 与测光信息
+     *
+     * 【组合拳优化：生产端时间节流 (Throttling) + 死区降噪滤波 (Deadband Filter)】：
+     * 1. 时间节流：限制最大更新频率不超过 3~4Hz (约 280ms 一次)。人眼无法分辨以 30Hz 狂闪的数字，
+     *    且过高频率毫无视觉价值。
+     * 2. 死区降噪 (Deadband)：若当前帧与上一帧 Luma 亮度变化 <= 1 且 FPS 相同，视为环境光稳定微噪，直接舍弃，
+     *    不触发 StateFlow 下发，彻底保持 Compose 树安静。
      */
     fun updateRealtimeMetrics(fps: Int, luma: Int, latencyMs: Long) {
-        _uiState.update {
-            it.copy(
-                realtimeFps = fps,
-                realtimeLuma = luma,
-                frameProcessingLatencyMs = latencyMs
-            )
-        }
+        val now = System.currentTimeMillis()
+        // 1. 时间节流检测 (280ms)
+        if (now - lastMetricsEmitTimeMs < 280L) return
+
+        // 2. 死区微噪过滤 (Luma 波动 <= 1 且 FPS 相同则忽略)
+        val lumaDelta = abs(luma - lastEmittedLuma)
+        if (lumaDelta <= 1 && fps == lastEmittedFps) return
+
+        // 3. 发射并记录历史基准
+        lastMetricsEmitTimeMs = now
+        lastEmittedLuma = luma
+        lastEmittedFps = fps
+
+        _realtimeMetrics.value = CameraRealtimeMetrics(
+            fps = fps,
+            luma = luma,
+            latencyMs = latencyMs
+        )
     }
 
     /**

@@ -32,11 +32,6 @@ data class CameraUiState(
     // 拍照模式策略 (高画质 vs 低延迟)
     val captureMode: Int = ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY,
 
-    // 实时遥测性能数据 (ImageAnalysis 管道产出)
-    val realtimeFps: Int = 0,
-    val realtimeLuma: Int = 0,
-    val frameProcessingLatencyMs: Long = 0,
-
     // 硬件探测信息
     val hardwareSpecs: List<CameraHardwareInfo> = emptyList(),
     val currentHardwareSpec: CameraHardwareInfo? = null,

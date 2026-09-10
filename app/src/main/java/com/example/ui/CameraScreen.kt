@@ -92,6 +92,8 @@ fun CameraScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // 独立订阅高频遥测数据流 (与低频 UIState 物理隔离，避免整屏重组)
+    val realtimeMetrics by viewModel.realtimeMetrics.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
@@ -232,9 +234,10 @@ fun CameraScreen(
                 )
             }
 
-            // 4. 顶部专业抬头 HUD
+            // 4. 顶部专业抬头 HUD (仅将 metrics 作为独立流传入，实现局部重组)
             CameraHud(
                 uiState = uiState,
+                metrics = realtimeMetrics,
                 onFlashToggle = { viewModel.cycleFlashMode() },
                 onTorchToggle = { viewModel.toggleTorch() },
                 onOpenSpecs = { viewModel.toggleSpecsDialog(true) },
