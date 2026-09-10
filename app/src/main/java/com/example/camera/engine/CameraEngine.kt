@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraInfo
@@ -65,22 +66,30 @@ class CameraEngine(
         get() = camera?.cameraInfo
 
     /**
-     * 初始化并启动相机流水线
+     * 初始化并启动相机流水线，支持根据公开 LensFacing 或具体 Camera ID 进行生命周期绑定
+     *
+     * 【绝对容错与安全沙箱 (Failure Fallback & Auto-Rollback)】：
+     * 当用户尝试切换至厂商私有 ID (如 ID 2/3/4/5) 时，若底层 HAL 或系统权限拒绝 (SecurityException / IllegalArgumentException)，
+     * 引擎会自动捕获异常并通过 [onErrorWithFallback] 触发安全救生圈回滚至默认后摄，彻底消除黑屏和崩溃风险。
      *
      * @param previewView 取景器视图
      * @param lensFacing 镜头朝向 (后置/前置)
+     * @param targetCameraId 可选的具体硬件 ID (如 "0", "1", "2")，若指定则按 ID 精准过滤
      * @param captureMode 拍照模式 (高画质 / 低延迟)
      * @param flashMode 闪光模式
      * @param analyzer 图像帧分析回调
      * @param onCameraReady 相机启动完成回调（传递曝光与缩放参数范围）
+     * @param onErrorWithFallback 切换失败异常回调
      */
     fun startCamera(
         previewView: PreviewView,
         lensFacing: Int = CameraSelector.LENS_FACING_BACK,
+        targetCameraId: String? = null,
         captureMode: Int = ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY,
         flashMode: Int = ImageCapture.FLASH_MODE_OFF,
         analyzer: ImageAnalysis.Analyzer,
-        onCameraReady: (Camera) -> Unit = {}
+        onCameraReady: (Camera) -> Unit = {},
+        onErrorWithFallback: (Throwable) -> Unit = {}
     ) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
@@ -111,10 +120,22 @@ class CameraEngine(
                         it.setAnalyzer(analysisExecutor, analyzer)
                     }
 
-                // 5. 选择目标摄像头
-                val cameraSelector = CameraSelector.Builder()
-                    .requireLensFacing(lensFacing)
-                    .build()
+                // 5. 动态构建目标摄像头 Selector (优先匹配具体 CameraId)
+                val selectorBuilder = CameraSelector.Builder()
+                if (!targetCameraId.isNullOrEmpty()) {
+                    selectorBuilder.addCameraFilter { cameraInfos ->
+                        cameraInfos.filter { info ->
+                            try {
+                                Camera2CameraInfo.from(info).cameraId == targetCameraId
+                            } catch (_: Exception) {
+                                false
+                            }
+                        }
+                    }
+                } else {
+                    selectorBuilder.requireLensFacing(lensFacing)
+                }
+                val cameraSelector = selectorBuilder.build()
 
                 // 6. 解绑旧用例并重新绑定到生命周期
                 provider.unbindAll()
@@ -128,10 +149,11 @@ class CameraEngine(
 
                 camera = boundCamera
                 onCameraReady(boundCamera)
-                Log.d(tag, "Camera successfully bound to lifecycle with lensFacing: $lensFacing")
+                Log.d(tag, "Camera successfully bound to lifecycle with targetId: $targetCameraId, lensFacing: $lensFacing")
 
-            } catch (e: Exception) {
-                Log.e(tag, "Failed to start camera: ${e.message}", e)
+            } catch (e: Throwable) {
+                Log.e(tag, "Failed to start camera (targetId=$targetCameraId): ${e.message}", e)
+                onErrorWithFallback(e)
             }
         }, ContextCompat.getMainExecutor(context))
     }

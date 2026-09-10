@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.camera.engine.CameraHardwareInspector
+import com.example.camera.model.CameraHardwareInfo
 import com.example.camera.model.CameraRealtimeMetrics
 import com.example.camera.model.CameraUiState
 import kotlinx.coroutines.delay
@@ -113,7 +114,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * 切换前后置摄像头
+     * 切换前后置摄像头 (默认公开逻辑通道)
      */
     fun toggleCameraFacing() {
         val newFacing = if (_uiState.value.lensFacing == CameraSelector.LENS_FACING_BACK) {
@@ -133,10 +134,68 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
         _uiState.update {
             it.copy(
                 lensFacing = newFacing,
+                targetCameraId = null, // 重置为默认公开通道
                 currentHardwareSpec = matchingSpec,
                 isTorchEnabled = false,
                 zoomRatio = 1.0f,
                 exposureIndex = 0
+            )
+        }
+    }
+
+    /**
+     * 主动按具体 Camera ID 切换相机 (支持公开 ID 0/1 及探测到的厂商私有 ID 2/3/4/5)
+     *
+     * 【双重安全沙箱机制】：
+     * 1. 记录切换前的安全上下文。
+     * 2. 状态机置为 [isSwitchingCamera]，若底层异常拒绝，自动触发 [handleCameraSwitchFailure] 安全回滚。
+     */
+    fun switchToCamera(targetSpec: CameraHardwareInfo) {
+        if (_uiState.value.currentHardwareSpec?.cameraId == targetSpec.cameraId) {
+            _uiState.update { it.copy(userNotice = "当前正在使用该摄像头 (ID: ${targetSpec.cameraId})") }
+            return
+        }
+
+        val inferredFacing = if (targetSpec.lensFacing.contains("FRONT")) {
+            CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
+        }
+
+        _uiState.update {
+            it.copy(
+                targetCameraId = targetSpec.cameraId,
+                lensFacing = inferredFacing,
+                currentHardwareSpec = targetSpec,
+                isSwitchingCamera = true,
+                isTorchEnabled = false,
+                zoomRatio = 1.0f,
+                exposureIndex = 0,
+                userNotice = "正在尝试切换至 ID: ${targetSpec.cameraId} (${targetSpec.opticalRole.ifEmpty { targetSpec.lensFacing }})..."
+            )
+        }
+    }
+
+    /**
+     * 相机切换失败安全兜底与自动回滚 (Safe Rollback)
+     */
+    fun handleCameraSwitchFailure(failedId: String?, error: Throwable) {
+        val errorMsg = when {
+            error is SecurityException -> "安全权限拒绝 (SELinux限制)"
+            error.message?.contains("device is already in use", ignoreCase = true) == true -> "HAL硬件设备正忙"
+            else -> error.localizedMessage ?: "驱动不支持直接绑定"
+        }
+
+        val defaultBackSpec = _uiState.value.hardwareSpecs.firstOrNull { it.cameraId == "0" }
+            ?: _uiState.value.hardwareSpecs.firstOrNull()
+
+        _uiState.update {
+            it.copy(
+                targetCameraId = null,
+                lensFacing = CameraSelector.LENS_FACING_BACK,
+                currentHardwareSpec = defaultBackSpec,
+                isSwitchingCamera = false,
+                userNotice = "⚠️ 切换至 ID: $failedId 失败 ($errorMsg)，已安全回退到默认主摄"
             )
         }
     }

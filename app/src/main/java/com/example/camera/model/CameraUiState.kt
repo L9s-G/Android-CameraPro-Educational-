@@ -15,6 +15,8 @@ data class CameraUiState(
 
     // 镜头与闪光控制
     val lensFacing: Int = CameraSelector.LENS_FACING_BACK,
+    val targetCameraId: String? = null,
+    val isSwitchingCamera: Boolean = false,
     val flashMode: Int = ImageCapture.FLASH_MODE_OFF,
     val isTorchEnabled: Boolean = false,
 

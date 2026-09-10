@@ -134,10 +134,11 @@ fun CameraScreen(
         }
     }
 
-    // 启动/切换相机用例流水线
+    // 启动/切换相机用例流水线 (支持按 targetCameraId 精准指定或常规 lensFacing 启动)
     LaunchedEffect(
         uiState.hasCameraPermission,
         uiState.lensFacing,
+        uiState.targetCameraId,
         uiState.captureMode,
         previewViewRef
     ) {
@@ -150,11 +151,15 @@ fun CameraScreen(
             cameraEngine.startCamera(
                 previewView = pView,
                 lensFacing = uiState.lensFacing,
+                targetCameraId = uiState.targetCameraId,
                 captureMode = uiState.captureMode,
                 flashMode = uiState.flashMode,
                 analyzer = frameAnalyzer,
                 onCameraReady = { camera ->
                     viewModel.onCameraBound(camera)
+                },
+                onErrorWithFallback = { error ->
+                    viewModel.handleCameraSwitchFailure(uiState.targetCameraId, error)
                 }
             )
         }
@@ -319,6 +324,9 @@ fun CameraScreen(
             HardwareSpecsDialog(
                 specs = uiState.hardwareSpecs,
                 currentSpec = uiState.currentHardwareSpec,
+                onSwitchCamera = { targetSpec ->
+                    viewModel.switchToCamera(targetSpec)
+                },
                 onDismiss = { viewModel.toggleSpecsDialog(false) }
             )
         }

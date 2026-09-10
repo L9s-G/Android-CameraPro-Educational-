@@ -1,6 +1,37 @@
 package com.example.camera.model
 
 /**
+ * 物理子摄像头专属特性模型 (Physical Sub-Camera Specs)
+ *
+ * 【教学核心点：物理摄像头 vs 逻辑摄像头】
+ * 在 Android 9+ (API 28+) 的逻辑多摄系统 (Logical Multi-Camera) 中，
+ * 一颗逻辑主摄底层往往包含多颗独立的物理 Sensor（如超广角、主摄、长焦）。
+ *
+ * @property physicalCameraId 物理 Sensor 的硬件 ID (如 "2", "3")
+ * @property lensType 光学镜头类型 (超广角 / 广角主摄 / 长焦 / 微距辅助)
+ * @property opticalZoomEquivalent 光学焦段等效变焦系数 (如 0.6x, 1.0x, 2.0x, 3.0x)
+ * @property sensorResolutionMp 物理传感器像素（MP）
+ * @property activeArraySize 物理像素阵列尺寸 (如 4000 x 3000)
+ * @property focalLengths 物理镜头焦距列表 (mm)
+ * @property equivalentFocalLength35mm 等效 35mm 相机焦距 (mm, 便于理解视角)
+ * @property fovDegrees 水平视场角 (Field of View in Degrees)
+ * @property apertures 可用光圈值 (如 f/1.8, f/2.2)
+ * @property supportsOis 是否具备硬件光学防抖
+ */
+data class PhysicalSubCameraInfo(
+    val physicalCameraId: String,
+    val lensType: String,
+    val opticalZoomEquivalent: Float,
+    val sensorResolutionMp: Float,
+    val activeArraySize: String,
+    val focalLengths: List<Float>,
+    val equivalentFocalLength35mm: Float,
+    val fovDegrees: Float,
+    val apertures: List<Float>,
+    val supportsOis: Boolean
+)
+
+/**
  * 摄像头硬件与特性数据模型 (Camera Hardware Specifications)
  *
  * 用于教学展示 Android Camera2 HAL3 硬件层级的核心参数与传感器能力。
@@ -22,6 +53,9 @@ package com.example.camera.model
  * @property isoRange ISO 感光度可调范围
  * @property exposureCompensationRange 曝光补偿区间及步长
  * @property focalLengths 物理镜头焦距 (mm)
+ * @property isLogicalMultiCamera 是否为包含多颗物理摄像头的逻辑多摄系统
+ * @property isOemHiddenCamera 是否为厂商隐藏未公开的独立摄像头 (探针发现)
+ * @property physicalSubCameras 隶属于该逻辑摄像头的物理子镜头列表 (超广角/长焦等)
  */
 data class CameraHardwareInfo(
     val cameraId: String,
@@ -39,5 +73,14 @@ data class CameraHardwareInfo(
     val supportsRaw: Boolean,
     val isoRange: String,
     val exposureCompensationRange: String,
-    val focalLengths: List<Float>
+    val focalLengths: List<Float>,
+    val isLogicalMultiCamera: Boolean = false,
+    val isOemHiddenCamera: Boolean = false,
+    val physicalSubCameras: List<PhysicalSubCameraInfo> = emptyList(),
+    // 智能光学角色推断与指纹比对 (Smart Optical Heuristic & Fingerprinting)
+    val opticalRole: String = "",
+    val opticalRoleDescription: String = "",
+    val equivalentFocalLength35mm: Float = 0f,
+    val fovDegrees: Float = 0f,
+    val isMirrorOfCamera0: Boolean = false
 )

@@ -122,6 +122,25 @@ fun CameraHud(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
+
+                // 当前激活镜头标识 (带智能角色提示)
+                val currentCameraLabel = uiState.currentHardwareSpec?.let { spec ->
+                    "ID:${spec.cameraId}" + if (spec.opticalRole.isNotEmpty()) "·${spec.opticalRole.take(4)}" else ""
+                } ?: "ID:0"
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF00E5FF).copy(alpha = 0.2f))
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = currentCameraLabel,
+                        color = Color(0xFF00E5FF),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
             }
         }
 
