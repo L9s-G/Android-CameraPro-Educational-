@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.camera.core.ImageCapture
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,18 +12,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -43,10 +46,10 @@ import com.example.camera.model.CameraUiState
 /**
  * 专业手动调节面板 (Manual Pro Control Panel)
  *
- * 【教学点】：
- * 1. 曝光补偿 (EV)：通过调整底层 AE 目标偏置，控制画面明暗，单位为 EV (Exposure Value)。
- * 2. 变焦 (Zoom)：CameraX 统一管理物理广角/长焦镜头无缝切换与高保真数字裁剪。
- * 3. 画质策略：MAXIMIZE_QUALITY 启用多帧降噪与高动态范围融合；MINIMIZE_LATENCY 优化零延迟连拍。
+ * 【UI与交互设计优化】：
+ * 1. 采用标准的卡片弹层设计，顶部配有面板标题、说明与显式的【关闭按钮 (X)】，交互明确。
+ * 2. 针对竖屏自适应优化空间，控制项垂直紧凑堆叠，避免横向挤压变形。
+ * 3. 曝光补偿 (EV)、无极变焦 (Zoom) 与画质策略清晰分层。
  */
 @Composable
 fun ManualControlPanel(
@@ -54,24 +57,89 @@ fun ManualControlPanel(
     onZoomChanged: (Float) -> Unit,
     onExposureChanged: (Int) -> Unit,
     onCaptureModeChanged: (Int) -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF161B22).copy(alpha = 0.92f),
+            .widthIn(max = 560.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFF141A23).copy(alpha = 0.96f),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF30363D))
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(18.dp)
                 .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // 0. 面板头部：标题、副标题与显式关闭按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF00E5FF).copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = null,
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "手动专业参数调节",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "直连 ISP 曝光与变焦流水线",
+                            color = Color(0xFF8B949E),
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                // 显式关闭按钮
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF21262D))
+                        .testTag("close_manual_panel_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "关闭调节面板",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            // 分隔线
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color(0xFF21262D))
+            )
+
             // 1. 变焦控制行 (Zoom)
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -82,18 +150,18 @@ fun ManualControlPanel(
                             imageVector = Icons.Default.ZoomIn,
                             contentDescription = null,
                             tint = Color(0xFF00E5FF),
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "变焦 (Zoom)",
+                            text = "变焦",
                             color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
-                    // 当前数值与快捷倍率
+                    // 变焦快捷档位与当前读数
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -104,7 +172,7 @@ fun ManualControlPanel(
                                 OutlinedButton(
                                     onClick = { onZoomChanged(preset) },
                                     modifier = Modifier
-                                        .height(28.dp)
+                                        .height(26.dp)
                                         .testTag("zoom_preset_${preset.toInt()}x"),
                                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(
@@ -112,12 +180,12 @@ fun ManualControlPanel(
                                     ),
                                     border = androidx.compose.foundation.BorderStroke(
                                         1.dp,
-                                        if (isSelected) Color(0xFF00E5FF) else Color(0xFF484F58)
+                                        if (isSelected) Color(0xFF00E5FF) else Color(0xFF38404A)
                                     )
                                 ) {
                                     Text(
                                         text = "${preset.toInt()}x",
-                                        fontSize = 11.sp,
+                                        fontSize = 10.sp,
                                         color = if (isSelected) Color(0xFF00E5FF) else Color.White
                                     )
                                 }
@@ -127,10 +195,10 @@ fun ManualControlPanel(
                         Text(
                             text = "%.1fx".format(uiState.zoomRatio),
                             color = Color(0xFF00E5FF),
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.padding(start = 4.dp)
+                            modifier = Modifier.padding(start = 2.dp)
                         )
                     }
                 }
@@ -142,14 +210,17 @@ fun ManualControlPanel(
                     colors = SliderDefaults.colors(
                         thumbColor = Color(0xFF00E5FF),
                         activeTrackColor = Color(0xFF00E5FF),
-                        inactiveTrackColor = Color(0xFF30363D)
+                        inactiveTrackColor = Color(0xFF2A313C)
                     ),
-                    modifier = Modifier.testTag("zoom_slider")
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp)
+                        .testTag("zoom_slider")
                 )
             }
 
             // 2. 曝光补偿控制行 (Exposure Compensation)
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -160,14 +231,14 @@ fun ManualControlPanel(
                             imageVector = Icons.Default.WbSunny,
                             contentDescription = null,
                             tint = Color(0xFFFFCA28),
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "曝光补偿 (EV)",
                             color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
@@ -179,14 +250,14 @@ fun ManualControlPanel(
                         IconButton(
                             onClick = { onExposureChanged(0) },
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(24.dp)
                                 .testTag("exposure_reset_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.RestartAlt,
                                 contentDescription = "重置曝光至 0 EV",
                                 tint = Color(0xFF8B949E),
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                         }
 
@@ -194,7 +265,7 @@ fun ManualControlPanel(
                         Text(
                             text = (if (ev >= 0) "+%.1f" else "%.1f").format(ev) + " EV",
                             color = Color(0xFFFFCA28),
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace
                         )
@@ -210,9 +281,12 @@ fun ManualControlPanel(
                         colors = SliderDefaults.colors(
                             thumbColor = Color(0xFFFFCA28),
                             activeTrackColor = Color(0xFFFFCA28),
-                            inactiveTrackColor = Color(0xFF30363D)
+                            inactiveTrackColor = Color(0xFF2A313C)
                         ),
-                        modifier = Modifier.testTag("exposure_slider")
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(28.dp)
+                            .testTag("exposure_slider")
                     )
                 } else {
                     Text(
@@ -224,41 +298,44 @@ fun ManualControlPanel(
             }
 
             // 3. 画质策略切换 (Capture Mode Policy)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "捕获管线优化策略",
-                    color = Color.White,
-                    fontSize = 12.sp,
+                    color = Color(0xFFC9D1D9),
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     FilterChip(
                         selected = uiState.captureMode == ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY,
                         onClick = { onCaptureModeChanged(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY) },
-                        label = { Text("最大化画质", fontSize = 11.sp) },
+                        label = { Text("最大化画质 (HQ多帧降噪)", fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFF00E5FF).copy(alpha = 0.2f),
                             selectedLabelColor = Color(0xFF00E5FF),
                             labelColor = Color.White
                         ),
-                        modifier = Modifier.testTag("capture_mode_quality")
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("capture_mode_quality")
                     )
 
                     FilterChip(
                         selected = uiState.captureMode == ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY,
                         onClick = { onCaptureModeChanged(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY) },
-                        label = { Text("极速零延迟", fontSize = 11.sp) },
+                        label = { Text("极速零延迟 (抓拍)", fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFFFFB300).copy(alpha = 0.2f),
                             selectedLabelColor = Color(0xFFFFB300),
                             labelColor = Color.White
                         ),
-                        modifier = Modifier.testTag("capture_mode_latency")
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("capture_mode_latency")
                     )
                 }
             }

@@ -59,7 +59,69 @@ fun CameraHud(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 顶部操作按钮行
+        // 1. 上部：遥测性能状态条 (FPS、Luma、EV、质量模式) - 提升到最顶端
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color.Black.copy(alpha = 0.55f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 实时 FPS (以绿色/青色显示流畅度)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (uiState.realtimeFps >= 24) Color(0xFF00E676) else Color(0xFFFFAB00)
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "${uiState.realtimeFps} FPS",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+
+                // Y 通道亮度采样
+                Text(
+                    text = "Luma: ${uiState.realtimeLuma}",
+                    color = Color(0xFFE0E0E0),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+
+                // 曝光补偿指示
+                val evValue = uiState.exposureIndex * uiState.exposureStep
+                val evStr = if (evValue >= 0) "+%.1f".format(evValue) else "%.1f".format(evValue)
+                Text(
+                    text = "EV: $evStr",
+                    color = Color(0xFFFFD54F),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = FontFamily.Monospace
+                )
+
+                // 画质策略标签
+                Text(
+                    text = if (uiState.captureMode == ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY) "HQ画质" else "极速连拍",
+                    color = Color(0xFF80D8FF),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        // 2. 下部：四个操作功能按钮行
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -150,68 +212,6 @@ fun CameraHud(
                         tint = Color.White
                     )
                 }
-            }
-        }
-
-        // 遥测性能状态条 (FPS、Luma、EV、质量模式)
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = Color.Black.copy(alpha = 0.55f),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 实时 FPS (以绿色/青色显示流畅度)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (uiState.realtimeFps >= 24) Color(0xFF00E676) else Color(0xFFFFAB00)
-                            )
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "${uiState.realtimeFps} FPS",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
-
-                // Y 通道亮度采样
-                Text(
-                    text = "Luma: ${uiState.realtimeLuma}",
-                    color = Color(0xFFE0E0E0),
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace
-                )
-
-                // 曝光补偿指示
-                val evValue = uiState.exposureIndex * uiState.exposureStep
-                val evStr = if (evValue >= 0) "+%.1f".format(evValue) else "%.1f".format(evValue)
-                Text(
-                    text = "EV: $evStr",
-                    color = Color(0xFFFFD54F),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = FontFamily.Monospace
-                )
-
-                // 画质策略标签
-                Text(
-                    text = if (uiState.captureMode == ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY) "HQ画质" else "极速连拍",
-                    color = Color(0xFF80D8FF),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
-                )
             }
         }
     }

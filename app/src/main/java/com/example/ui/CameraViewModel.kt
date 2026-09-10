@@ -205,14 +205,14 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * 拍照成功回调
+     * 拍照成功回调：保存至系统公共 DCIM/Camera 相册
      */
     fun onPhotoCaptured(uri: String) {
         _uiState.update {
             it.copy(
                 isCapturing = false,
                 lastCapturedPhotoUri = uri,
-                userNotice = "照片拍摄成功！已保存至应用安全沙箱"
+                userNotice = "照片拍摄成功！已保存至系统相册 (DCIM/Camera)"
             )
         }
     }

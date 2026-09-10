@@ -1,7 +1,10 @@
 package com.example.camera.engine
 
+import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.util.Log
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraControl
@@ -16,7 +19,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.Executors
@@ -187,31 +189,59 @@ class CameraEngine(
     }
 
     /**
-     * 执行高解析度静态照片拍照
+     * 执行高解析度静态照片拍照并保存至系统公共 DCIM/Camera 目录
      *
-     * 【教学点】：将图片写入应用私有 Pictures 缓存目录，避免需要额外的危险写入存储权限。
+     * 【教学点：现代 Android 分区存储的最佳工程实践】：
+     * 1. 采用 MediaStore API 构建输出选项 [ImageCapture.OutputFileOptions]。
+     * 2. 显式配置 [MediaStore.Images.Media.RELATIVE_PATH] 为 "DCIM/Camera"，使手机自带相册、
+     *    Google Photos 能立即扫描并展示新照片。
+     * 3. 在 Android 10+ (API 29+) 标记 IS_PENDING 状态，写入完成后置为 0，防止其他相册读取到未写完的半截文件。
      */
     fun capturePhoto(
-        onSuccess: (Uri, File) -> Unit,
+        onSuccess: (Uri) -> Unit,
         onError: (ImageCaptureException) -> Unit
     ) {
         val capture = imageCaptureUseCase ?: return
 
-        val photoFile = File(
-            context.getExternalFilesDir(null) ?: context.filesDir,
-            "CAMERA_PRO_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis())}.jpg"
-        )
+        val fileName = "IMG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis())}"
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "$fileName.jpg")
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "DCIM/Camera")
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
 
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(
+            context.contentResolver,
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            contentValues
+        ).build()
 
         capture.takePicture(
             outputOptions,
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    val savedUri = outputFileResults.savedUri ?: Uri.fromFile(photoFile)
-                    Log.d(tag, "Photo captured successfully: $savedUri (size: ${photoFile.length()} bytes)")
-                    onSuccess(savedUri, photoFile)
+                    val savedUri = outputFileResults.savedUri
+                    if (savedUri != null) {
+                        // 在 Android 10+ 释放 IS_PENDING 标志位，使相册立即公开索引可见
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            val updateValues = ContentValues().apply {
+                                put(MediaStore.Images.Media.IS_PENDING, 0)
+                            }
+                            try {
+                                context.contentResolver.update(savedUri, updateValues, null, null)
+                            } catch (e: Exception) {
+                                Log.w(tag, "Failed to update IS_PENDING: ${e.message}")
+                            }
+                        }
+                        Log.d(tag, "Photo captured successfully to DCIM/Camera: $savedUri")
+                        onSuccess(savedUri)
+                    } else {
+                        onError(ImageCaptureException(ImageCapture.ERROR_UNKNOWN, "保存的 URI 为空", null))
+                    }
                 }
 
                 override fun onError(exception: ImageCaptureException) {

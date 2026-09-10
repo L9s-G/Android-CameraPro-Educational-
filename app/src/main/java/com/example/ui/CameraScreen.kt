@@ -257,7 +257,8 @@ fun CameraScreen(
                     uiState = uiState,
                     onZoomChanged = { viewModel.updateZoomRatio(it) },
                     onExposureChanged = { viewModel.updateExposureIndex(it) },
-                    onCaptureModeChanged = { viewModel.setCaptureMode(it) }
+                    onCaptureModeChanged = { viewModel.setCaptureMode(it) },
+                    onClose = { viewModel.toggleManualControls(false) }
                 )
             }
 
@@ -269,7 +270,7 @@ fun CameraScreen(
                         viewModel.setCapturing(true)
                         showFlashEffect = true
                         cameraEngine.capturePhoto(
-                            onSuccess = { uri, _ ->
+                            onSuccess = { uri ->
                                 showFlashEffect = false
                                 viewModel.onPhotoCaptured(uri.toString())
                             },

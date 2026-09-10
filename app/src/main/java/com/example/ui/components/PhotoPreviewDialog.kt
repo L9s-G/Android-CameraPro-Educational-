@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -46,50 +49,82 @@ fun PhotoPreviewDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
+                .widthIn(max = 560.dp)
                 .testTag("photo_preview_dialog"),
             shape = RoundedCornerShape(20.dp),
-            color = Color(0xFF0D1117),
+            color = Color(0xFF141A23).copy(alpha = 0.96f),
             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF30363D))
         ) {
             Column(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(18.dp)
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 顶部标题与关闭按钮
+                // 顶部标题与关闭按钮（统一设计规范）
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.PhotoCamera,
-                            contentDescription = null,
-                            tint = Color(0xFF00E5FF),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "拍摄样本预览",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF00E5FF).copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhotoCamera,
+                                contentDescription = null,
+                                tint = Color(0xFF00E5FF),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "拍摄样本预览 (DCIM)",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "系统公开相册即时解析",
+                                color = Color(0xFF8B949E),
+                                fontSize = 11.sp
+                            )
+                        }
                     }
 
+                    // 统一风格圆形关闭按钮
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.testTag("close_preview_button")
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF21262D))
+                            .testTag("close_preview_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "关闭预览",
-                            tint = Color.White
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // 分隔线
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color(0xFF21262D))
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -98,7 +133,7 @@ fun PhotoPreviewDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(340.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(Color.Black)
                 ) {
                     AsyncImage(
@@ -115,11 +150,11 @@ fun PhotoPreviewDialog(
 
                 // 文件路径与保存提示
                 Text(
-                    text = "存储路径: $photoUri",
+                    text = "系统相册位置: $photoUri\n(可通过系统相册/文件管理器直接打开)",
                     color = Color(0xFF8B949E),
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace,
-                    maxLines = 2
+                    maxLines = 3
                 )
             }
         }
