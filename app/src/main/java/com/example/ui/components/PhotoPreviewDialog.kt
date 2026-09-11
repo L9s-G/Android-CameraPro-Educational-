@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 
 /**
@@ -45,11 +46,14 @@ fun PhotoPreviewDialog(
     photoUri: String,
     onDismiss: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = 560.dp)
+                .fillMaxWidth(0.95f)
+                .widthIn(max = 680.dp)
                 .testTag("photo_preview_dialog"),
             shape = RoundedCornerShape(20.dp),
             color = Color(0xFF141A23).copy(alpha = 0.96f),
@@ -128,11 +132,11 @@ fun PhotoPreviewDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 图片渲染区域 (通过 Coil 加载)
+                // 图片渲染区域 (通过 Coil 加载，适配加宽预览)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(340.dp)
+                        .height(380.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color.Black)
                 ) {
@@ -142,7 +146,7 @@ fun PhotoPreviewDialog(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(340.dp)
+                            .height(380.dp)
                     )
                 }
 

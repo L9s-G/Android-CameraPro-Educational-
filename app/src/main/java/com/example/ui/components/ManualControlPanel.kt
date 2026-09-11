@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.camera.model.CameraUiState
@@ -313,7 +314,15 @@ fun ManualControlPanel(
                     FilterChip(
                         selected = uiState.captureMode == ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY,
                         onClick = { onCaptureModeChanged(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY) },
-                        label = { Text("最大化画质 (HQ多帧降噪)", fontSize = 11.sp) },
+                        label = {
+                            Text(
+                                text = "高画质",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFF00E5FF).copy(alpha = 0.2f),
                             selectedLabelColor = Color(0xFF00E5FF),
@@ -327,7 +336,15 @@ fun ManualControlPanel(
                     FilterChip(
                         selected = uiState.captureMode == ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY,
                         onClick = { onCaptureModeChanged(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY) },
-                        label = { Text("极速零延迟 (抓拍)", fontSize = 11.sp) },
+                        label = {
+                            Text(
+                                text = "零延迟",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFFFFB300).copy(alpha = 0.2f),
                             selectedLabelColor = Color(0xFFFFB300),
