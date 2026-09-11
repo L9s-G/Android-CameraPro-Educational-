@@ -395,14 +395,6 @@ private fun CameraSpecCard(
                         .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // 内部分隔线
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color(0xFF252D38))
-                    )
-
                     // 1. [CollapseSection] 光学角色 (defaultExpanded = false)
                     val opticalRoleSummary = buildString {
                         if (spec.opticalRole.isNotEmpty()) append(spec.opticalRole)
